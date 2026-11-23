@@ -14,6 +14,63 @@ function closeTo(actual, expected) {
 const old = vintage("2026-11-21");
 const next = vintage("2026-11-22");
 
+test("archive rejects incompatible units, model and component order", () => {
+  for (const change of [{base_f:18},{units:"°C·day"},{model:"Another model"},{components:["cdd","hdd"]},{weight:"Gas demand"}])
+    assert.throws(()=>engine.check({...archive,...change}),/method/);
+});
+
+test("calendar labels are real civil dates", () => {
+  assert.equal(engine.validDate("2024-02-29"),true);
+  for (const value of ["2026-02-29","2026-02-31","2026-13-01","x"]) assert.equal(engine.validDate(value),false);
+  const data=structuredClone(archive);
+  data.runs[0].init="2026-02-31T00:00:00Z";
+  assert.throws(()=>engine.check(data),/initialization/);
+  const invalidDay=structuredClone(archive);
+  invalidDay.runs[0].days["2026-09-31"]=Object.values(invalidDay.runs[0].days)[0];
+  assert.throws(()=>engine.check(invalidDay),/valid date/);
+});
+
+test("missing run-day structures and incomplete state arrays fail closed", () => {
+  for (const days of [null,[],{}]) {
+    const data=structuredClone(archive); data.runs[0].days=days;
+    assert.throws(()=>engine.check(data),/valid dates/);
+  }
+  const data=structuredClone(archive), day=Object.keys(data.runs[0].days)[0];
+  data.runs[0].days[day].pop();
+  assert.throws(()=>engine.check(data),/state set/);
+  assert.throws(()=>engine.check({...archive,runs:[]}),/metadata/);
+  const invalidState=structuredClone(archive); invalidState.states[0].code="AK";
+  assert.throws(()=>engine.check(invalidState),/weights/);
+});
+
+test("library refuses equal or reversed forecast order", () => {
+  assert.throws(()=>engine.calculate(archive,next,old,"hdd"),/follow/);
+  assert.throws(()=>engine.calculate(archive,old,old,"hdd"),/follow/);
+});
+
+test("fixed archive scales cover every chronological comparison", () => {
+  const dates=archive.runs.map(r=>r.init).sort();
+  for(const metric of ["hdd","cdd","both"]) {
+    const limit=engine.archiveScale(archive,metric);
+    assert.ok(Number.isInteger(limit)&&limit>=1);
+    for(let i=0;i<dates.length;i++) for(let j=i+1;j<dates.length;j++)
+      for(const state of engine.calculate(archive,dates[i],dates[j],metric).byState)
+        assert.ok(Math.abs(state.change)<=limit);
+  }
+});
+
+test("shared URLs restore choices and flag unavailable archives", () => {
+  const selection=engine.restoreSelection(archive,`?earlier=${old}&later=${next}&metric=cdd&region=PA`);
+  assert.deepEqual(selection,{earlier:old,later:next,metric:"cdd",region:"PA",invalid:false});
+  assert.equal(engine.restoreSelection(archive,"?metric=unknown").invalid,true);
+  assert.equal(engine.restoreSelection(archive,"?earlier=1900-01-01").invalid,true);
+});
+
+test("CSV filenames distinguish the selected weather measure", () => {
+  const names=["hdd","cdd","both"].map(m=>engine.csvName("US",m,old,next));
+  assert.equal(new Set(names).size,3);
+});
+
 test("archive validates and geography covers exactly the Census-weighted areas", () => {
   assert.equal(engine.check(archive), archive);
   assert.deepEqual(

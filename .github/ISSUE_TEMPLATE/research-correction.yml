@@ -1,0 +1,29 @@
+name: Research correction or reproducible bug
+description: Help identify a data, method, documentation or interface error.
+title: "[Correction] "
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Page, file or endpoint
+      description: Include the URL and the commit or snapshot date when available.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Inputs and steps
+      description: Include contract months, dates, model runs, units and settings relevant to the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: What happened, and what should happen?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Supporting evidence
+      description: Link the source or calculation. Please do not include passwords, API keys or private account data.

@@ -18,6 +18,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 import numpy as np
 from osgeo import gdal
+from archive_rules import merge_runs, validate_temperatures
 
 ROOT = Path(__file__).resolve().parents[1]
 BUCKET = "https://noaa-gfs-bdp-pds.s3.amazonaws.com"
@@ -128,12 +129,7 @@ def sample(run, hour, county):
         col = np.floor((glon - x) / dx).astype(int)
         row = np.floor((lat - y) / dy).astype(int)
         temperatures = b.ReadAsArray()[row, col].astype(np.float64) * 1.8 + 32.0
-        if (
-            not np.isfinite(temperatures).all()
-            or temperatures.min() < -100
-            or temperatures.max() > 150
-        ):
-            raise ValueError("Out-of-range county temperature")
+        validate_temperatures(temperatures, len(lon))
         return temperatures
     finally:
         ds = None
@@ -168,12 +164,15 @@ def main():
         default=Path(tempfile.gettempdir()) / "henry-hub-gfs-tmp-v1",
     )
     ap.add_argument("--out", type=Path, default=ROOT / "runs.json")
+    ap.add_argument("--replace-existing", action="store_true", help="With --merge, explicitly replace differing archived cycles after reviewing them")
     ap.add_argument(
         "--merge",
         action="store_true",
         help="Retain older full runs with the same method",
     )
     args = ap.parse_args()
+    if args.replace_existing and not args.merge:
+        ap.error("--replace-existing requires --merge")
     if not 1 <= args.days <= 15 or not 1 <= args.workers <= 32:
         raise ValueError("Invalid days/workers")
     if len(set(args.dates)) != len(args.dates):
@@ -214,8 +213,7 @@ def main():
         path = args.cache / f"{run}_{h:03}_{cache_tag}.npy"
         if path.exists():
             v = np.load(path, allow_pickle=False)
-            if v.shape != (len(pop),) or not np.isfinite(v).all():
-                raise ValueError("Bad cached array")
+            validate_temperatures(v, len(pop))
             return job, v
         v = sample(run, h, county)
         temp = path.with_suffix(".tmp")
@@ -246,14 +244,7 @@ def main():
         report["runs"].append(out)
     if args.merge and args.out.exists():
         old = json.loads(args.out.read_text())
-        if any(
-            old[k] != report[k]
-            for k in ("schema", "census_sha256", "states", "base_f", "sample_hours_utc")
-        ):
-            raise ValueError("Old archive uses different method, cannot merge")
-        built = {r["init"]: r for r in old["runs"]}
-        built.update({r["init"]: r for r in report["runs"]})
-        report["runs"] = sorted(built.values(), key=lambda x: x["init"])
+        report["runs"] = merge_runs(old, report, args.replace_existing)
     report["runs"].sort(key=lambda x: x["init"])
     report["retrieved_utc"] = (
         datetime.now(timezone.utc)

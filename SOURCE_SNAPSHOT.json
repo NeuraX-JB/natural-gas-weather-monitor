@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "repository": "NeuraX-JB/natural-gas-weather-monitor",
+  "review_date": "2026-11-23",
+  "source_repository": "NeuraX-JB/Henry-Hub-Futures-Curve-Explorer-How-the-Natural-Gas-Market-prices-winter",
+  "source_commit": "80c2e5321dadc95aadd4c7f65792fb15f0e2f156",
+  "reviewed_baseline_commit": "c296083763337eb5021b981c96b2e790ec5eee59",
+  "publication_mode": "Documented research snapshot. No live data refresh workflow is enabled here.",
+  "frozen_data_sha256": {
+    "lab/weather/map.json": "809441222f8c92aacd879bd8bb2b81f08e4ec84388759092a4b68d97e672b6c4",
+    "lab/weather/runs.json": "6c84f476634f24059670d14cd531f4671e09afd7ffe8429c26be0041f6ba9849"
+  }
+}

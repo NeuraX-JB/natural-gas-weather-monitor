@@ -490,3 +490,5 @@ footer {
 [hidden] {
   display: none !important;
 }
+
+.tablearea:focus-visible,#headline:focus-visible{outline:3px solid #d1935d;outline-offset:3px}#headline:focus:not(:focus-visible){outline:none}

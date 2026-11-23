@@ -1,17 +1,13 @@
 # Data use and attribution
 
-This repository presents independent research and educational applications. Public access to source data does not necessarily grant unrestricted redistribution or commercial reuse.
+This weather project uses archived GFS temperature forecasts, Census county population weights, and state-map geometry.
 
-| Source | Material used | Where documented |
-| :--- | :--- | :--- |
-| U.S. Energy Information Administration (EIA) | Lower 48 storage, Henry Hub spot observations and historical futures archive | [Shared source notes](lab/data/README.md), [EIA data](https://www.eia.gov/naturalgas/) |
-| NOAA Climate Prediction Center | Observed population-weighted degree days | [Shared source notes](lab/data/README.md) |
-| NOAA GFS operational archive | Archived temperature forecast fields | [Weather methodology](lab/weather/README.md) |
-| U.S. Census Bureau / us-atlas | Population sampling weights and state geometry | [Weather methodology](lab/weather/README.md), [us-atlas license](lab/weather/research/US_ATLAS_LICENSE) |
-| SEC filings | Selected reconstructed futures curve snapshots and archived price examples | [Curve explorer](https://neurax-jb.github.io/Henry-Hub-Futures-Curve-Explorer-How-the-Natural-Gas-Market-prices-winter/), [Industrial simulator](https://neurax-jb.github.io/Henry-Hub-Futures-Curve-Explorer-How-the-Natural-Gas-Market-prices-winter/lab/industrial/) |
+| Source | Material | Local evidence |
+| --- | --- | --- |
+| [NOAA GFS archive](https://registry.opendata.aws/noaa-gfs-bdp-pds/) | Deterministic 00 UTC forecast fields on the 0.5° grid | [Method and archive dates](lab/weather/README.md) · [Archived runs](lab/weather/runs.json) |
+| [U.S. Census county population centers](https://www2.census.gov/geo/docs/reference/cenpop2020/county/CenPop2020_Mean_CO.txt) | 2020 resident populations and mean centers | [Sampling method](lab/weather/README.md) · Census input hash in [runs.json](lab/weather/runs.json) |
+| [Census geometry via us-atlas](https://github.com/topojson/us-atlas) | State and district boundaries | [Map builder](lab/weather/research/build_map.py) · [us-atlas license](lab/weather/research/US_ATLAS_LICENSE) |
 
-EIA attributes the underlying Henry Hub spot price data to Refinitiv, an LSEG business. Check the relevant third-party terms before redistributing or using those quotes commercially. Filings may include third-party information and do not automatically confer a redistribution license.
+The archive compilation timestamp is distinct from model initialization and original publication time. Cache reuse can avoid new downloads; it does not establish when a forecast first became publicly available. Degree-day revisions measure population-weighted temperature exposure, not gas demand in Bcf.
 
-The [source manifest](lab/data/manifest.json) documents retrieval times and hashes; the [API metadata](lab/api/v1/index.json) documents coverage and units. Historical source files may contain revisions.
-
-No repository-wide license is declared. The separate us-atlas license remains applicable to its covered material. A repository-wide license and the rights to any third-party datasets or media should be reviewed independently before relicensing or commercial distribution. Nothing in this document grants new rights to third-party content.
+The us-atlas license remains applicable to its transformation. No repository-wide software or data license is declared. Public access to a source is not a blanket redistribution or commercial-use license; source terms continue to apply.

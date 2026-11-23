@@ -16,12 +16,12 @@
     <a class="skip" href="#monitor">Skip to monitor</a>
     <header>
       <div class="mast wrap">
-        <a href="../" class="brand"
+        <a href="../../" class="brand"
           ><span aria-hidden="true" class="brandmark"
             ><i></i><i></i><i></i></span
           >Henry Hub Research</a
         >
-        <nav><a href="../">Project hub</a><a href="#method">Method</a></nav>
+        <nav><a href="../../">Project hub</a><a href="#method">Method</a></nav>
       </div>
       <div class="hero wrap">
         <div class="kicker"><span></span> WEATHER / NOAA GFS</div>
@@ -36,18 +36,20 @@
       </div>
     </header>
     <main class="wrap" id="monitor">
+      <noscript><p class="note">JavaScript is needed for interactive comparisons. You can <a href="runs.json">download the archived runs</a>, inspect the <a href="https://github.com/NeuraX-JB/natural-gas-weather-monitor/blob/main/lab/weather/README.md">methodology</a>, or use the source files locally.</p></noscript>
+      <p id="link-warning" class="note" role="status" hidden></p>
       <section class="controlbox" aria-label="Select forecast runs">
         <div class="ctrl">
           <label for="earlier">Earlier initialization · UTC</label
-          ><select id="earlier"></select>
+          ><select disabled id="earlier"></select>
         </div>
         <div class="ctrl">
           <label for="later">Later initialization · UTC</label
-          ><select id="later"></select>
+          ><select disabled id="later"></select>
         </div>
         <div class="ctrl">
           <label for="metric">Weather measure</label
-          ><select id="metric">
+          ><select disabled id="metric">
             <option value="hdd">Heating degree days</option>
             <option value="cdd">Cooling degree days</option>
             <option value="both">Heating + cooling degree days</option>
@@ -55,24 +57,24 @@
         </div>
         <div class="ctrl">
           <label for="region">Geography</label
-          ><select id="region"></select>
+          ><select disabled id="region"></select>
         </div>
       </section>
       <div class="replay">
         <span>Historical replay</span
-        ><button id="back" type="button">Previous pair</button
-        ><button id="play" type="button">Play replay</button
-        ><button id="next" type="button">Next pair</button
-        ><button id="latest" type="button">Latest archived pair</button>
+        ><button id="back" disabled type="button">Previous pair</button
+        ><button id="play" disabled type="button">Play replay</button
+        ><button id="next" disabled type="button">Next pair</button
+        ><button id="latest" disabled type="button">Latest archived pair</button>
       </div>
       <p id="message" role="status" hidden></p>
       <div id="content" hidden>
         <div class="summary-head">
           <div>
-            <h2 id="headline">Matched outlook</h2>
+            <h2 id="headline" tabindex="-1">Matched outlook</h2>
             <p id="window"></p>
           </div>
-          <button type="button" id="csv">Export daily CSV</button>
+          <button type="button" disabled id="csv">Export daily CSV</button>
         </div>
         <section
           class="stats"
@@ -107,14 +109,14 @@
               <span><b></b>Earlier</span><span><b></b>Later</span>
             </div>
             <div id="dailychart"></div>
-            <div class="tablearea">
+            <div class="tablearea" tabindex="0" role="region" aria-label="Weather values, horizontally scrollable">
               <table>
                 <thead>
                   <tr>
-                    <th>Valid date · UTC</th>
-                    <th>Earlier</th>
-                    <th>Later</th>
-                    <th>Revision</th>
+                    <th scope="col">Valid date · UTC</th>
+                    <th scope="col">Earlier</th>
+                    <th scope="col">Later</th>
+                    <th scope="col">Revision</th>
                   </tr>
                 </thead>
                 <tbody id="dailytbody"></tbody>
@@ -127,14 +129,14 @@
             All state revisions
             <small>49 areas · sorted by absolute change</small>
           </summary>
-          <div class="tablearea">
+          <div class="tablearea" tabindex="0" role="region" aria-label="Weather values, horizontally scrollable">
             <table>
               <thead>
                 <tr>
-                  <th>State / district</th>
-                  <th>Earlier</th>
-                  <th>Later</th>
-                  <th>Revision</th>
+                  <th scope="col">State / district</th>
+                  <th scope="col">Earlier</th>
+                  <th scope="col">Later</th>
+                  <th scope="col">Revision</th>
                 </tr>
               </thead>
               <tbody id="statetbody"></tbody>
@@ -148,8 +150,7 @@
           <strong>Forecast vintage.</strong> The archive contains individual
           NOAA Global Forecast System deterministic 00 UTC model cycles on a
           0.5° grid. A run label is its initialization time. Public availability
-          follows model computation and dissemination. The monitor shows stored
-          runs and updates when new data are archived.
+          follows model computation and dissemination. This project is a historical snapshot. New runs appear only after an explicit archive rebuild; it does not update automatically.
         </p>
         <p>
           <strong>Identical dates.</strong> Each run contains nine complete UTC
@@ -189,7 +190,7 @@
           ><a href="research/build_runs.py" download>Rebuild script</a>
         </div>
       </section>
-      <footer>Natural Gas Research Lab · Weather research</footer>
+      <footer>John Barreto · Historical weather research</footer>
     </main>
   </body>
 </html>

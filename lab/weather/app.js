@@ -41,6 +41,9 @@
     a.remove();
     setTimeout(() => URL.revokeObjectURL(u), 2500);
   }
+  const controlIds = ["earlier","later","metric","region","back","next","play","latest","csv"];
+  const enableControls = enabled => controlIds.forEach(id => { $(id).disabled = !enabled; });
+  let fixedScales;
   let data,
     geo,
     validPairs,
@@ -66,11 +69,12 @@
       clearInterval(timer);
       timer = null;
     }
-    $("play").textContent = "Play replay";
+    const last = validPairs && validPairs.at(-1);
+    $("play").textContent = last && last[0] === $("earlier").value && last[1] === $("later").value ? "Replay from first pair" : "Play replay";
     $("play").setAttribute("aria-pressed", "false");
   }
   function selectPair(i) {
-    const [a, b] = validPairs[(i + validPairs.length) % validPairs.length];
+    const [a, b] = validPairs[Math.max(0, Math.min(i, validPairs.length - 1))];
     $("earlier").value = a;
     $("later").value = b;
     render();
@@ -79,15 +83,13 @@
     const cur = validPairs.findIndex(
       (p) => p[0] === $("earlier").value && p[1] === $("later").value,
     );
-    selectPair(
-      cur === -1
-        ? direction > 0
-          ? 0
-          : validPairs.length - 1
-        : cur + direction,
-    );
+    const next = cur === -1 ? (direction > 0 ? 0 : validPairs.length - 1) : cur + direction;
+    if (next < 0 || next >= validPairs.length) { stop(); return; }
+    selectPair(next);
+    if (next === validPairs.length - 1) stop();
   }
   function setGeo(code) {
+    stop();
     $("region").value = code;
     render();
   }
@@ -95,13 +97,12 @@
     const map = $("map");
     map.replaceChildren();
     map.setAttribute("viewBox", geo.viewBox);
-    const maxAbs = Math.max(0.1, ...rev.map((s) => Math.abs(s.change)));
-    const limit = Math.max(1, Math.ceil(maxAbs));
+    const limit = fixedScales[metric];
     $("low").textContent = sign(-limit);
     $("high").textContent =
       sign(limit) + " " + metric.toUpperCase().replace("BOTH", "DD");
     $("mapcaption").textContent =
-      metricLabel() + " change, later minus earlier · matched window";
+      metricLabel() + " change · matched window · fixed archive scale (°F·days)";
     const updateNote = (s) => {
       $("mapnote").textContent = s
         ? s.name +
@@ -268,18 +269,21 @@
     later = $("later").value;
     metric = $("metric").value;
     geography = $("region").value;
-    comparison = WeatherEngine.calculate(data, earlier, later, metric);
-    const days = comparison.dates;
-    const bad =
-      earlier >= later
-        ? "Choose a later initialization that follows the earlier one."
-        : !days.length
-          ? "These forecast horizons have no shared valid dates. Select a closer pair or use the replay controls."
-          : "";
+    comparison = earlier < later ? WeatherEngine.calculate(data, earlier, later, metric) : null;
+    const days = comparison ? comparison.dates : [];
+    const bad = earlier >= later ? "Choose a later initialization that follows the earlier one."
+      : !days.length ? "These forecast horizons have no shared valid dates. Select a closer pair or use the replay controls." : "";
+    $("csv").disabled = !!bad;
     $("content").hidden = !!bad;
     $("message").hidden = !bad;
     $("message").textContent = bad;
-    if (bad) return;
+    if (bad) { daily = null; $("back").disabled = false; $("next").disabled = false; return; }
+    const query = new URLSearchParams({earlier,later,metric,region:geography});
+    history.replaceState(null,"",location.pathname + "?" + query.toString() + location.hash);
+    const pairIndex = validPairs.findIndex(pair => pair[0] === earlier && pair[1] === later);
+    $("back").disabled = pairIndex === 0;
+    $("next").disabled = pairIndex === validPairs.length - 1;
+    if (!timer) stop();
     daily = comparison.series(geography);
     const a = daily.reduce((s, r) => s + r.old, 0),
       b = daily.reduce((s, r) => s + r.now, 0),
@@ -346,6 +350,7 @@
           button.type = "button";
           button.onclick = () => {
             setGeo(s.code);
+            $("headline").focus();
             $("headline").scrollIntoView({ block: "start" });
           };
           c.append(button);
@@ -360,14 +365,20 @@
     );
   }
   try {
+    enableControls(false);
     const load = async (path) => {
-      const r = await fetch(path);
-      if (!r.ok) throw Error(path + " unavailable");
-      return r.json();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      try {
+        const r = await fetch(path, {signal:controller.signal});
+        if (!r.ok) throw Error(path + " unavailable");
+        return await r.json();
+      } finally { clearTimeout(timeout); }
     };
     [data, geo] = await Promise.all([load("runs.json"), load("map.json")]);
     WeatherEngine.check(data);
     validPairs = WeatherEngine.pairs(data);
+    fixedScales = Object.fromEntries(["hdd","cdd","both"].map(metric => [metric, WeatherEngine.archiveScale(data,metric)]));
     if (!validPairs.length) throw Error("No overlapping archived runs.");
     const runs = data.runs.slice().sort((a, b) => b.init.localeCompare(a.init));
     ["earlier", "later"].forEach((id) =>
@@ -419,7 +430,10 @@
         stop();
         return;
       }
-      step(1);
+      const last = validPairs.at(-1);
+      if ($("earlier").value === last[0] && $("later").value === last[1]) selectPair(0);
+      else step(1);
+      if ($("earlier").value === last[0] && $("later").value === last[1]) { stop(); return; }
       $("play").textContent = "Pause replay";
       $("play").setAttribute("aria-pressed", "true");
       timer = setInterval(() => step(1), 2600);
@@ -428,6 +442,7 @@
       if (document.hidden) stop();
     });
     $("csv").onclick = () => {
+      if (!daily || !daily.length || $("content").hidden) return;
       const header =
         "geography,metric,earlier_initialization_utc,later_initialization_utc,valid_utc_date,earlier_degree_days,later_degree_days,revision_degree_days";
       downloads(
@@ -446,17 +461,20 @@
             ].join(","),
           ),
         ].join("\r\n") + "\r\n",
-        "gfs-revision_" +
-          geography +
-          "_" +
-          earlier.slice(0, 10) +
-          "_" +
-          later.slice(0, 10) +
-          ".csv",
+        WeatherEngine.csvName(geography, metric, earlier, later),
       );
     };
-    selectPair(validPairs.length - 1);
+    const restored = WeatherEngine.restoreSelection(data, location.search);
+    for (const id of ["earlier","later","metric","region"]) $(id).value = restored[id];
+    enableControls(true);
+    render();
+    if (restored.invalid) {
+      $("link-warning").hidden = false;
+      $("link-warning").textContent = "The saved comparison is not available in this archive. Showing the latest archived pair.";
+    }
   } catch (err) {
+    enableControls(false);
+    $("content").hidden = true;
     $("message").hidden = false;
     $("message").textContent =
       "The weather archive could not be opened. Reload this page and check the data links below.";

@@ -1,0 +1,2 @@
+# Offline validation dependencies; data refreshes are not run by CI.
+
