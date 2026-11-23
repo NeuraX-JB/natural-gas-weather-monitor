@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Natural Gas Weather Revision Monitor | Henry Hub Research</title>
+    <meta
+      name="description"
+      content="Compare archived NOAA GFS forecasts on identical dates. Explore population-weighted heating and cooling degree-day revisions by state."
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script defer src="engine.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#monitor">Skip to monitor</a>
+    <header>
+      <div class="mast wrap">
+        <a href="../" class="brand"
+          ><span aria-hidden="true" class="brandmark"
+            ><i></i><i></i><i></i></span
+          >Henry Hub Research</a
+        >
+        <nav><a href="../">Project hub</a><a href="#method">Method</a></nav>
+      </div>
+      <div class="hero wrap">
+        <div class="kicker"><span></span> WEATHER / NOAA GFS</div>
+        <h1>Weather Revision Monitor</h1>
+        <p>
+          Compare how two forecast runs changed the heating and cooling outlook
+          across the Lower 48.
+        </p>
+        <div class="vintage" id="vintage">
+          Loading archived model initialization times…
+        </div>
+      </div>
+    </header>
+    <main class="wrap" id="monitor">
+      <section class="controlbox" aria-label="Select forecast runs">
+        <div class="ctrl">
+          <label for="earlier">Earlier initialization · UTC</label
+          ><select id="earlier"></select>
+        </div>
+        <div class="ctrl">
+          <label for="later">Later initialization · UTC</label
+          ><select id="later"></select>
+        </div>
+        <div class="ctrl">
+          <label for="metric">Weather measure</label
+          ><select id="metric">
+            <option value="hdd">Heating degree days</option>
+            <option value="cdd">Cooling degree days</option>
+            <option value="both">Heating + cooling degree days</option>
+          </select>
+        </div>
+        <div class="ctrl">
+          <label for="region">Geography</label
+          ><select id="region"></select>
+        </div>
+      </section>
+      <div class="replay">
+        <span>Historical replay</span
+        ><button id="back" type="button">Previous pair</button
+        ><button id="play" type="button">Play replay</button
+        ><button id="next" type="button">Next pair</button
+        ><button id="latest" type="button">Latest archived pair</button>
+      </div>
+      <p id="message" role="status" hidden></p>
+      <div id="content" hidden>
+        <div class="summary-head">
+          <div>
+            <h2 id="headline">Matched outlook</h2>
+            <p id="window"></p>
+          </div>
+          <button type="button" id="csv">Export daily CSV</button>
+        </div>
+        <section
+          class="stats"
+          id="stats"
+          aria-label="Matched degree-day totals"
+        ></section>
+        <section class="panels">
+          <article class="panel">
+            <div class="panelhead">
+              <h2>State revisions</h2>
+              <p id="mapcaption">Newer forecast minus earlier forecast</p>
+            </div>
+            <div class="map-wrap">
+              <svg
+                id="map"
+                role="group"
+                aria-label="Clickable map of state revisions"
+              ></svg>
+            </div>
+            <div class="legend">
+              <span id="low"></span><i aria-hidden="true"></i
+              ><span id="high"></span>
+            </div>
+            <p class="note" id="mapnote"></p>
+          </article>
+          <article class="panel chartpanel">
+            <div class="panelhead">
+              <h2>Daily forecast comparison</h2>
+              <p id="chartcaption"></p>
+            </div>
+            <div class="chartlegend">
+              <span><b></b>Earlier</span><span><b></b>Later</span>
+            </div>
+            <div id="dailychart"></div>
+            <div class="tablearea">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Valid date · UTC</th>
+                    <th>Earlier</th>
+                    <th>Later</th>
+                    <th>Revision</th>
+                  </tr>
+                </thead>
+                <tbody id="dailytbody"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+        <details class="panel statetable">
+          <summary>
+            All state revisions
+            <small>49 areas · sorted by absolute change</small>
+          </summary>
+          <div class="tablearea">
+            <table>
+              <thead>
+                <tr>
+                  <th>State / district</th>
+                  <th>Earlier</th>
+                  <th>Later</th>
+                  <th>Revision</th>
+                </tr>
+              </thead>
+              <tbody id="statetbody"></tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+      <section class="panel method" id="method">
+        <h2>Data and method</h2>
+        <p>
+          <strong>Forecast vintage.</strong> The archive contains individual
+          NOAA Global Forecast System deterministic 00 UTC model cycles on a
+          0.5° grid. A run label is its initialization time. Public availability
+          follows model computation and dissemination. The monitor shows stored
+          runs and updates when new data are archived.
+        </p>
+        <p>
+          <strong>Identical dates.</strong> Each run contains nine complete UTC
+          dates, beginning the day after initialization. Comparisons take the
+          intersection of valid dates. The earlier-only dates that drop off and
+          later-only dates that enter the forecast are excluded.
+        </p>
+        <p>
+          <strong>From temperature to degree days.</strong> For each 2020 Census
+          county population center, the nearest GFS grid cell supplies 2 m air
+          temperature at 00, 06, 12 and 18 UTC. Their arithmetic mean gives a
+          four-sample daily temperature in °F. Heating degree days equal max(65
+          − mean, 0). Cooling degree days equal max(mean − 65, 0). Both use a
+          65°F base. State and national averages weight those county values by
+          2020 resident population. The national series covers the contiguous 48
+          states and DC.
+        </p>
+        <p>
+          <strong>Interpretation.</strong> An increase in HDD indicates cooler
+          conditions relative to the 65°F base. An increase in CDD indicates
+          warmer conditions above that base. These are weather-exposure
+          indicators. Gas consumption in Bcf would require a separate demand
+          model. Grid resolution, UTC sampling and fixed population weights
+          affect the estimates.
+        </p>
+        <p id="coverage"></p>
+        <div class="sources">
+          <a href="https://registry.opendata.aws/noaa-gfs-bdp-pds/"
+            >NOAA GFS archive</a
+          ><a
+            href="https://www.census.gov/geographies/reference-files/time-series/geo/centers-population.2020.html"
+            >Census population centers</a
+          ><a href="https://github.com/topojson/us-atlas"
+            >Census geometry via us-atlas</a
+          ><a href="runs.json" download>Download run data</a
+          ><a href="README.md">Reproduction guide</a
+          ><a href="research/build_runs.py" download>Rebuild script</a>
+        </div>
+      </section>
+      <footer>Natural Gas Research Lab · Weather research</footer>
+    </main>
+  </body>
+</html>
