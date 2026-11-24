@@ -15,23 +15,30 @@ Eight 00 UTC initializations from August 9–11 and November 18–22, 2026 cover
 
 Degree days describe temperature exposure. Conversion into gas demand would require a sector- and region-specific demand model. Four instantaneous temperature samples approximate the daily mean; a local gas day or a min/max-based index can yield a different estimate. The state averages are population weighted and the population weights are fixed to the 2020 Census.
 
+## Reading the archived JSON
+
+The `states` array defines the order of areas in each daily array. For `runs[i].days["YYYY-MM-DD"][j]`, look up the area in `states[j]`. Its two values are heating and cooling degree days in that order. `init` identifies the run, while the day key identifies the period forecast. To reproduce the national figure, weight each state's daily value by its share of the archive's total population before summing the matched days.
+
+For a state, the map sums its own revisions. A large state-map value describes a change in exposure within that state. Its contribution to the national change equals that value multiplied by its population share. The national average can therefore move very little while individual states see large revisions.
+
 ## Update or reproduce
 
-Use Python 3, NumPy and GDAL with the GRIB driver. The app itself uses plain HTML, JavaScript and CSS. On Debian/Ubuntu the builder can use the system interpreter with `python3-gdal` and `python3-numpy`. Run from this directory.
+Use Python 3, NumPy and GDAL with the GRIB driver. The app itself uses plain HTML, JavaScript and CSS. On Debian/Ubuntu the builder can use the system interpreter with `python3-gdal` and `python3-numpy`. Run from this directory. Write an independent reconstruction to a separate file so it can be compared with the checked-in archive.
 
 ```bash
-/usr/bin/python3 research/build_runs.py
+/usr/bin/python3 research/build_runs.py --out /tmp/gfs-weather-rebuilt.json
 node --test research/*.test.js
 python3 -m unittest discover -s research -p "test_*.py"
 ```
 
-Add original cycles by giving their UTC initialization dates after NOAA publishes the required lead hours. The merge retains earlier cycles and rejects a differing replacement for an existing initialization. After investigating a deliberate correction, `--merge --replace-existing` permits replacing that cycle. Method, units and weighting must match even with that flag; publish the resulting `runs.json` alongside the app. For example, this revalidates the last two archived dates.
+Add original cycles by giving their UTC initialization dates after NOAA publishes the required lead hours. The merge retains earlier cycles and rejects a differing replacement for an existing initialization. After investigating a deliberate correction, `--merge --replace-existing` permits replacing that cycle. Method, units and weighting must match even with that flag; publish the resulting `runs.json` alongside the app. For example, copy the published archive and check the last two cycles against that copy.
 
 ```bash
-/usr/bin/python3 research/build_runs.py --merge --dates 2026-11-21 2026-11-22
+cp runs.json /tmp/gfs-weather-merge.json
+/usr/bin/python3 research/build_runs.py --out /tmp/gfs-weather-merge.json --merge --dates 2026-11-21 2026-11-22
 ```
 
-The builder caches sampled temperatures and the Census input in the system temporary directory. Cached temperatures are checked against the same finite-value and physical-range rules as fresh samples. Use a new `--cache` directory to repeat the upstream download. Use `--out` for an independent output. The `retrieved_utc` field is the archive compilation time, including when a local input cache was used. The NOAA reference time remains recorded separately for every run. Use the default nine-day horizon to extend this archive consistently.
+The builder caches sampled temperatures and the Census input in the system temporary directory. Cached temperatures are checked against the same finite-value and physical-range rules as fresh samples. Use a new `--cache` directory to repeat the upstream download. For a reconstruction, compare the `states` and `runs` arrays in the two files. The compilation timestamp changes on each build, so the complete file can have a new digest even when all forecast values match. The `retrieved_utc` field is the archive compilation time, including when a local input cache was used. The NOAA reference time remains recorded separately for every run. Use the default nine-day horizon to extend this archive consistently.
 
 The map can be rebuilt independently with the Python standard library.
 
